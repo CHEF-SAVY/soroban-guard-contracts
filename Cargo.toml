@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = [
+    "vulnerable/missing_auth",
+    "vulnerable/unchecked_math",
+    "vulnerable/unprotected_admin",
+    "vulnerable/unsafe_storage",
+    "secure/secure_vault",
+    "secure/protected_admin",
+    "registry",
+]
+
+[workspace.dependencies]
+soroban-sdk = { version = "21.0.0", features = ["testutils"] }
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
