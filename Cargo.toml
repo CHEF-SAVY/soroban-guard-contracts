@@ -9,6 +9,7 @@ members = [
     "vulnerable/unchecked_math",
     "vulnerable/unprotected_admin",
     "vulnerable/unsafe_storage",
+    "vulnerable/zero_deposit",
     "vulnerable/reentrancy",
     "vulnerable/negative_transfer",
     "vulnerable/string_admin",
