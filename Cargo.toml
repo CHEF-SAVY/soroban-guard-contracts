@@ -8,6 +8,7 @@ members = [
     "vulnerable/div_by_zero",
     "secure/secure_vault",
     "secure/protected_admin",
+    "secure/secure_transfer",
     "registry",
 ]
 
