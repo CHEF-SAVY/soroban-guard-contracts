@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "vulnerable/unbounded_loop",
     "vulnerable/missing_auth",
     "vulnerable/missing_events",
     "vulnerable/missing_ttl",
@@ -12,6 +13,7 @@ members = [
     "vulnerable/negative_transfer",
     "vulnerable/string_admin",
     "vulnerable/div_by_zero",
+    "secure/paginated_airdrop",
     "secure/secure_vault",
     "secure/protected_admin",
     "secure/secure_transfer",
