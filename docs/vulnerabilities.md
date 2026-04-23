@@ -154,6 +154,61 @@ pub fn set_profile(env: Env, account: Address, display_name: String, kyc_level: 
 
 ---
 
+## 5. Missing Events (`missing_events`)
+
+**Contract:** `vulnerable/missing_events` → `secure/secure_vault`
+
+### What it is
+
+Soroban contracts should emit events for all state changes using
+`env.events().publish()` so that off-chain indexers, wallets, and users can
+track contract activity. Without events, external systems cannot reliably
+monitor token mints, burns, or other state mutations, leading to inconsistent
+views of the contract state.
+
+### Vulnerable code
+
+```rust
+pub fn mint(env: Env, to: Address, amount: i128) {
+    // ❌ No env.events().publish() — off-chain indexers are blind to this
+    let key = DataKey::Balance(to);
+    let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
+    env.storage().persistent().set(&key, &(current + amount));
+}
+
+pub fn burn(env: Env, from: Address, amount: i128) {
+    // ❌ No env.events().publish() — off-chain indexers are blind to this
+    let key = DataKey::Balance(from);
+    let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
+    env.storage().persistent().set(&key, &(current - amount));
+}
+```
+
+### Secure fix
+
+```rust
+pub fn mint(env: Env, to: Address, amount: i128) {
+    // ... state mutation ...
+    env.events().publish((symbol_short!("mint"),), (to, amount)); // ✅ Emit event
+}
+
+pub fn burn(env: Env, from: Address, amount: i128) {
+    from.require_auth();
+    // ... state mutation ...
+    env.events().publish((symbol_short!("burn"),), (from, amount)); // ✅ Emit event
+}
+```
+
+### Impact
+
+- Off-chain tracking failure: Indexers, wallets, and explorers cannot track
+  token supply changes, leading to incorrect balances and transaction histories.
+- Inconsistent state views: Different indexers may have different views of
+  total supply and account balances.
+- Severity: **Medium**
+
+---
+
 ## General Soroban Security Checklist
 
 | Check | Description |
@@ -162,4 +217,5 @@ pub fn set_profile(env: Env, account: Address, display_name: String, kyc_level: 
 | Checked arithmetic | Use `checked_add`, `checked_sub`, `checked_mul` for all financial calculations |
 | Admin gate on privileged fns | `initialize`, `upgrade`, `set_admin`, `pause` must verify the caller is the stored admin |
 | Storage key ownership | Storage keys that include an `Address` must only be written after `address.require_auth()` |
+| Event emission on state changes | Every state-mutating function must call `env.events().publish()` with relevant data for off-chain tracking |
 | No re-initialization | Guard `initialize` with a check that the contract hasn't already been set up |

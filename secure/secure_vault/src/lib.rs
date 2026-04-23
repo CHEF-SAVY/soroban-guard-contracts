@@ -22,15 +22,38 @@ pub struct SecureVault;
 #[contractimpl]
 impl SecureVault {
     /// Mint tokens — in production this would also be admin-gated (see protected_admin).
+    /// SECURE: Emits events for off-chain tracking.
     pub fn mint(env: Env, to: Address, amount: i128) {
         // FIX: In a real deployment, require admin auth here too.
         // For this example we focus on the transfer fix.
-        let key = DataKey::Balance(to);
+        let key = DataKey::Balance(to.clone());
         let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
         let new_balance = current
             .checked_add(amount)
             .expect("mint: balance overflow");
         env.storage().persistent().set(&key, &new_balance);
+
+        // ✅ SECURE: Emit event for off-chain tracking
+        env.events()
+            .publish((symbol_short!("mint"),), (to, amount));
+    }
+
+    /// Burn tokens from an address.
+    /// SECURE: Requires auth and emits events for off-chain tracking.
+    pub fn burn(env: Env, from: Address, amount: i128) {
+        from.require_auth();
+
+        let key = DataKey::Balance(from.clone());
+        let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
+        let new_balance = current
+            .checked_sub(amount)
+            .expect("burn: insufficient balance");
+        assert!(new_balance >= 0, "burn: insufficient balance");
+        env.storage().persistent().set(&key, &new_balance);
+
+        // ✅ SECURE: Emit event for off-chain tracking
+        env.events()
+            .publish((symbol_short!("burn"),), (from, amount));
     }
 
     /// FIX 1: `from.require_auth()` is called before any state mutation.
@@ -126,5 +149,49 @@ mod tests {
         env.mock_all_auths();
         // Trying to send more than alice has — should panic.
         client.transfer(&alice, &bob, &500);
+    }
+
+    #[test]
+    fn test_burn_succeeds_with_auth() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, SecureVault);
+        let client = SecureVaultClient::new(&env, &contract_id);
+
+        let alice = Address::generate(&env);
+
+        client.mint(&alice, &1000);
+        env.mock_all_auths();
+        client.burn(&alice, &400);
+
+        assert_eq!(client.balance(&alice), 600);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_burn_fails_without_auth() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, SecureVault);
+        let client = SecureVaultClient::new(&env, &contract_id);
+
+        let alice = Address::generate(&env);
+
+        client.mint(&alice, &1000);
+        // No mock_all_auths — should panic because require_auth is enforced.
+        client.burn(&alice, &400);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_burn_panics_on_insufficient_balance() {
+        let env = Env::default();
+        let contract_id = env.register_contract(None, SecureVault);
+        let client = SecureVaultClient::new(&env, &contract_id);
+
+        let alice = Address::generate(&env);
+
+        client.mint(&alice, &100);
+        env.mock_all_auths();
+        // Trying to burn more than alice has — should panic.
+        client.burn(&alice, &500);
     }
 }
