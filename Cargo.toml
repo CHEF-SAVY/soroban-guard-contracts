@@ -12,6 +12,7 @@ members = [
     "vulnerable/negative_transfer",
     "vulnerable/string_admin",
     "vulnerable/div_by_zero",
+    "secure/secure_staking",
     "secure/secure_vault",
     "secure/protected_admin",
     "secure/secure_transfer",
