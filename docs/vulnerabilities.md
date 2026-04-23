@@ -209,6 +209,55 @@ pub fn burn(env: Env, from: Address, amount: i128) {
 
 ---
 
+## 6. Timestamp Manipulation (`timestamp_lock`)
+
+**Contract:** `vulnerable/timestamp_lock` → `secure/sequence_lock`
+
+### What it is
+
+Time-locked vaults that use `env.ledger().timestamp()` for enforcing lock periods
+are vulnerable to timestamp manipulation within the validator drift window.
+Validators can adjust timestamps by several seconds, allowing premature withdrawal
+of locked funds. Using timestamps instead of ledger sequences for time-locking
+is less reliable on Soroban.
+
+### Vulnerable code
+
+```rust
+pub fn withdraw(env: Env, user: Address) {
+    user.require_auth();
+    let unlock_time: u64 = env.storage().persistent().get(&DataKey::UnlockTime(user.clone())).unwrap();
+    // ❌ Timestamp can be manipulated within validator drift window
+    if env.ledger().timestamp() < unlock_time {
+        panic!("still locked");
+    }
+    // release funds...
+}
+```
+
+### Secure fix
+
+```rust
+pub fn withdraw(env: Env, user: Address) {
+    user.require_auth();
+    let unlock_sequence: u32 = env.storage().persistent().get(&DataKey::UnlockSequence(user.clone())).unwrap();
+    // ✅ Ledger sequences are monotonically increasing and immutable
+    if env.ledger().sequence() < unlock_sequence {
+        panic!("still locked");
+    }
+    // release funds...
+}
+```
+
+### Impact
+
+- Premature fund access: Attackers can withdraw locked funds before the intended
+  lock period by timing transactions during validator timestamp drift windows.
+- Unreliable timing: Timestamp-based locks are less predictable than sequence-based locks.
+- Severity: **Medium**
+
+---
+
 ## General Soroban Security Checklist
 
 | Check | Description |
@@ -218,4 +267,5 @@ pub fn burn(env: Env, from: Address, amount: i128) {
 | Admin gate on privileged fns | `initialize`, `upgrade`, `set_admin`, `pause` must verify the caller is the stored admin |
 | Storage key ownership | Storage keys that include an `Address` must only be written after `address.require_auth()` |
 | Event emission on state changes | Every state-mutating function must call `env.events().publish()` with relevant data for off-chain tracking |
+| Use ledger sequences for time-locks | Prefer `env.ledger().sequence()` over `env.ledger().timestamp()` for time-based restrictions to avoid validator drift manipulation |
 | No re-initialization | Guard `initialize` with a check that the contract hasn't already been set up |
