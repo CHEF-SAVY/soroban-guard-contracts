@@ -10,6 +10,7 @@ members = [
     "vulnerable/unsafe_storage",
     "vulnerable/reentrancy",
     "vulnerable/div_by_zero",
+    "vulnerable/flash_loan_no_check",
     "secure/secure_vault",
     "secure/protected_admin",
     "secure/secure_transfer",
