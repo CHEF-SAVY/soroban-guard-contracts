@@ -154,118 +154,50 @@ pub fn set_profile(env: Env, account: Address, display_name: String, kyc_level: 
 
 ---
 
-## 5. Missing Events (`missing_events`)
+## 5. Self-Transfer Balance Inflation (`self_transfer`)
 
-**Contract:** `vulnerable/missing_events` → `secure/secure_vault`
+**Contract:** `vulnerable/self_transfer` → `secure/secure_transfer`
 
 ### What it is
 
-Soroban contracts should emit events for all state changes using
-`env.events().publish()` so that off-chain indexers, wallets, and users can
-track contract activity. Without events, external systems cannot reliably
-monitor token mints, burns, or other state mutations, leading to inconsistent
-views of the contract state.
+When `transfer(from, to, amount)` is called with `from == to`, both `get_balance` calls resolve to the same persistent storage slot. The function reads the balance once into two separate variables, subtracts from the first write, then overwrites that slot with the second write — inflating the account balance by `amount` instead of leaving it unchanged.
 
 ### Vulnerable code
 
 ```rust
-pub fn mint(env: Env, to: Address, amount: i128) {
-    // ❌ No env.events().publish() — off-chain indexers are blind to this
-    let key = DataKey::Balance(to);
-    let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
-    env.storage().persistent().set(&key, &(current + amount));
-}
-
-pub fn burn(env: Env, from: Address, amount: i128) {
-    // ❌ No env.events().publish() — off-chain indexers are blind to this
-    let key = DataKey::Balance(from);
-    let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
-    env.storage().persistent().set(&key, &(current - amount));
-}
-```
-
-### Secure fix
-
-```rust
-pub fn mint(env: Env, to: Address, amount: i128) {
-    // ... state mutation ...
-    env.events().publish((symbol_short!("mint"),), (to, amount)); // ✅ Emit event
-}
-
-pub fn burn(env: Env, from: Address, amount: i128) {
+pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
     from.require_auth();
-    // ... state mutation ...
-    env.events().publish((symbol_short!("burn"),), (from, amount)); // ✅ Emit event
-}
-```
-
-### Impact
-
-- Off-chain tracking failure: Indexers, wallets, and explorers cannot track
-  token supply changes, leading to incorrect balances and transaction histories.
-- Inconsistent state views: Different indexers may have different views of
-  total supply and account balances.
-- Severity: **Medium**
-
----
-
-## 6. Timestamp Manipulation (`timestamp_lock`)
-
-**Contract:** `vulnerable/timestamp_lock` → `secure/sequence_lock`
-
-### What it is
-
-Time-locked vaults that use `env.ledger().timestamp()` for enforcing lock periods
-are vulnerable to timestamp manipulation within the validator drift window.
-Validators can adjust timestamps by several seconds, allowing premature withdrawal
-of locked funds. Using timestamps instead of ledger sequences for time-locking
-is less reliable on Soroban.
-
-### Vulnerable code
-
-```rust
-pub fn withdraw(env: Env, user: Address) {
-    user.require_auth();
-    let unlock_time: u64 = env.storage().persistent().get(&DataKey::UnlockTime(user.clone())).unwrap();
-    // ❌ Timestamp can be manipulated within validator drift window
-    if env.ledger().timestamp() < unlock_time {
-        panic!("still locked");
-    }
-    // release funds...
+    // ❌ No from != to check — self-transfer corrupts balance
+    let from_balance = get_balance(&env, &from);
+    let to_balance = get_balance(&env, &to); // same slot as from_balance when from == to
+    set_balance(&env, &from, from_balance.checked_sub(amount).unwrap());
+    set_balance(&env, &to, to_balance.checked_add(amount).unwrap()); // overwrites the subtraction
 }
 ```
 
 ### Secure fix
 
 ```rust
-pub fn withdraw(env: Env, user: Address) {
-    user.require_auth();
-    let unlock_sequence: u32 = env.storage().persistent().get(&DataKey::UnlockSequence(user.clone())).unwrap();
-    // ✅ Ledger sequences are monotonically increasing and immutable
-    if env.ledger().sequence() < unlock_sequence {
-        panic!("still locked");
-    }
-    // release funds...
+pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
+    assert!(from != to, "self-transfer not allowed"); // ✅ Guard fires before any storage access
+    from.require_auth();
+    // ...
 }
 ```
 
 ### Impact
 
-- Premature fund access: Attackers can withdraw locked funds before the intended
-  lock period by timing transactions during validator timestamp drift windows.
-- Unreliable timing: Timestamp-based locks are less predictable than sequence-based locks.
+- Balance inflation: a user can repeatedly self-transfer to inflate their balance without limit.
 - Severity: **Medium**
 
 ---
 
 ## General Soroban Security Checklist
 
-| Check | Description |
-|---|---|
+| Check                               | Description                                                                                              |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `require_auth` on every mutating fn | Every function that reads or writes resources belonging to an address must call `address.require_auth()` |
-| Checked arithmetic | Use `checked_add`, `checked_sub`, `checked_mul` for all financial calculations |
-| Admin gate on privileged fns | `initialize`, `upgrade`, `set_admin`, `pause` must verify the caller is the stored admin |
-| Storage key ownership | Storage keys that include an `Address` must only be written after `address.require_auth()` |
-| Event emission on state changes | Every state-mutating function must call `env.events().publish()` with relevant data for off-chain tracking |
-| Use ledger sequences for time-locks | Prefer `env.ledger().sequence()` over `env.ledger().timestamp()` for time-based restrictions to avoid validator drift manipulation |
-| No re-initialization | Guard `initialize` with a check that the contract hasn't already been set up |
+| Checked arithmetic                  | Use `checked_add`, `checked_sub`, `checked_mul` for all financial calculations                           |
+| Admin gate on privileged fns        | `initialize`, `upgrade`, `set_admin`, `pause` must verify the caller is the stored admin                 |
+| Storage key ownership               | Storage keys that include an `Address` must only be written after `address.require_auth()`               |
+| No re-initialization                | Guard `initialize` with a check that the contract hasn't already been set up                             |

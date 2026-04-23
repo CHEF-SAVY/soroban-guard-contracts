@@ -7,9 +7,10 @@ members = [
     "vulnerable/unchecked_math",
     "vulnerable/unprotected_admin",
     "vulnerable/unsafe_storage",
+    "vulnerable/div_by_zero",
     "secure/secure_vault",
     "secure/protected_admin",
-    "secure/sequence_lock",
+    "secure/secure_transfer",
     "registry",
 ]
 
