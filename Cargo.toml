@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "vulnerable/dust_griefing",
     "vulnerable/missing_auth",
     "vulnerable/missing_events",
     "vulnerable/missing_ttl",
@@ -10,6 +11,7 @@ members = [
     "vulnerable/unsafe_storage",
     "vulnerable/reentrancy",
     "vulnerable/div_by_zero",
+    "secure/dust_griefing",
     "secure/secure_vault",
     "secure/protected_admin",
     "secure/secure_transfer",
