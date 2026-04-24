@@ -34,8 +34,7 @@ impl SecureBurnToken {
     pub fn mint(env: Env, to: Address, amount: i128) {
         let current = get_balance(&env, &to);
         set_balance(&env, &to, current.checked_add(amount).unwrap());
-        env.events()
-            .publish((symbol_short!("mint"),), (to, amount));
+        env.events().publish((symbol_short!("mint"),), (to, amount));
     }
 
     /// ✅ FIX: Require authorization from the account before burning their tokens.

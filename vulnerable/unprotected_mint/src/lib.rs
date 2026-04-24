@@ -36,8 +36,7 @@ impl UnprotectedMintToken {
         let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
         env.storage().persistent().set(&key, &(current + amount));
 
-        env.events()
-            .publish((symbol_short!("mint"),), (to, amount));
+        env.events().publish((symbol_short!("mint"),), (to, amount));
     }
 
     pub fn balance(env: Env, account: Address) -> i128 {
@@ -61,11 +60,7 @@ impl SecureMintToken {
 
     /// SECURE: Only the stored admin can mint tokens.
     pub fn mint(env: Env, to: Address, amount: i128) {
-        let admin: Address = env
-            .storage()
-            .persistent()
-            .get(&DataKey::Admin)
-            .unwrap();
+        let admin: Address = env.storage().persistent().get(&DataKey::Admin).unwrap();
         // ✅ Admin must sign this transaction
         admin.require_auth();
 
@@ -73,8 +68,7 @@ impl SecureMintToken {
         let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
         env.storage().persistent().set(&key, &(current + amount));
 
-        env.events()
-            .publish((symbol_short!("mint"),), (to, amount));
+        env.events().publish((symbol_short!("mint"),), (to, amount));
     }
 
     pub fn balance(env: Env, account: Address) -> i128 {

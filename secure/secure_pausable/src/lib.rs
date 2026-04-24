@@ -30,14 +30,22 @@ impl SecurePausable {
 
     /// ✅ Only the admin can pause the contract.
     pub fn pause(env: Env) {
-        let admin: Address = env.storage().persistent().get(&DataKey::Admin).expect("not initialized");
+        let admin: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         admin.require_auth();
         env.storage().persistent().set(&DataKey::Paused, &true);
     }
 
     /// ✅ Only the admin can unpause the contract.
     pub fn unpause(env: Env) {
-        let admin: Address = env.storage().persistent().get(&DataKey::Admin).expect("not initialized");
+        let admin: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .expect("not initialized");
         admin.require_auth();
         env.storage().persistent().set(&DataKey::Paused, &false);
     }
@@ -49,7 +57,11 @@ impl SecurePausable {
     }
 
     pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
-        let paused: bool = env.storage().persistent().get(&DataKey::Paused).unwrap_or(false);
+        let paused: bool = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
         if paused {
             panic!("contract is paused");
         }
@@ -59,17 +71,25 @@ impl SecurePausable {
         let from_key = DataKey::Balance(from.clone());
         let to_key = DataKey::Balance(to);
         let from_bal: i128 = env.storage().persistent().get(&from_key).unwrap_or(0);
-        env.storage().persistent().set(&from_key, &(from_bal - amount));
+        env.storage()
+            .persistent()
+            .set(&from_key, &(from_bal - amount));
         let to_bal: i128 = env.storage().persistent().get(&to_key).unwrap_or(0);
         env.storage().persistent().set(&to_key, &(to_bal + amount));
     }
 
     pub fn balance(env: Env, account: Address) -> i128 {
-        env.storage().persistent().get(&DataKey::Balance(account)).unwrap_or(0)
+        env.storage()
+            .persistent()
+            .get(&DataKey::Balance(account))
+            .unwrap_or(0)
     }
 
     pub fn is_paused(env: Env) -> bool {
-        env.storage().persistent().get(&DataKey::Paused).unwrap_or(false)
+        env.storage()
+            .persistent()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
     }
 }
 

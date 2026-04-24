@@ -37,9 +37,7 @@ impl ReentrantVault {
         user.require_auth();
         let key = DataKey::Balance(user.clone());
         let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
-        env.storage()
-            .persistent()
-            .set(&key, &(current + amount));
+        env.storage().persistent().set(&key, &(current + amount));
     }
 
     pub fn withdraw(env: Env, user: Address, amount: i128, notify_id: Address) {

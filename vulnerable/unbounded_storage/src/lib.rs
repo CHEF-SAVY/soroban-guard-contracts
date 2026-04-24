@@ -8,7 +8,7 @@
 //! VULNERABILITY: Unbounded `Vec` growth in persistent storage — no length cap.
 
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, String, Vec, Env};
+use soroban_sdk::{contract, contractimpl, contracttype, Env, String, Vec};
 
 #[contracttype]
 pub enum DataKey {

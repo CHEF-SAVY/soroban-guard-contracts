@@ -47,16 +47,8 @@ pub(crate) fn calculate_out(env: &Env, amount_in: i128) -> i128 {
 }
 
 pub(crate) fn apply_swap(env: &Env, amount_in: i128, amount_out: i128) {
-    let reserve_in: i128 = env
-        .storage()
-        .persistent()
-        .get(&DataKey::ReserveA)
-        .unwrap();
-    let reserve_out: i128 = env
-        .storage()
-        .persistent()
-        .get(&DataKey::ReserveB)
-        .unwrap();
+    let reserve_in: i128 = env.storage().persistent().get(&DataKey::ReserveA).unwrap();
+    let reserve_out: i128 = env.storage().persistent().get(&DataKey::ReserveB).unwrap();
     env.storage()
         .persistent()
         .set(&DataKey::ReserveA, &(reserve_in + amount_in));

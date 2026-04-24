@@ -34,11 +34,15 @@ impl TimeLockedVault {
         // Store the balance
         let balance_key = DataKey::Balance(user.clone());
         let current_balance: i128 = env.storage().persistent().get(&balance_key).unwrap_or(0);
-        env.storage().persistent().set(&balance_key, &(current_balance + amount));
+        env.storage()
+            .persistent()
+            .set(&balance_key, &(current_balance + amount));
 
         // Set the unlock time
         let unlock_key = DataKey::UnlockTime(user);
-        env.storage().persistent().set(&unlock_key, &unlock_timestamp);
+        env.storage()
+            .persistent()
+            .set(&unlock_key, &unlock_timestamp);
     }
 
     /// Withdraw funds after the lock period expires.
@@ -72,9 +76,7 @@ impl TimeLockedVault {
     }
 
     pub fn unlock_time(env: Env, user: Address) -> Option<u64> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::UnlockTime(user))
+        env.storage().persistent().get(&DataKey::UnlockTime(user))
     }
 
     pub fn current_timestamp(env: Env) -> u64 {
