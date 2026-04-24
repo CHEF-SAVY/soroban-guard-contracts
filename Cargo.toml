@@ -28,11 +28,13 @@ members = [
     "vulnerable/leaky_events",
     "vulnerable/no_slippage",
     "vulnerable/unsafe_cast",
+    "vulnerable/unprotected_pause",
     "secure/secure_vault",
     "secure/protected_admin",
     "secure/secure_transfer",
     "secure/secure_burn",
     "secure/secure_token",
+    "secure/secure_pausable",
     "registry",
 ]
 
