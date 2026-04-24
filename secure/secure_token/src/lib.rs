@@ -179,10 +179,18 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_non_admin_cannot_mint() {
-        let (env, _admin, client) = setup();
-        let attacker = Address::generate(&env);
-        // mock_all_auths not called for attacker — require_auth on admin will fail
-        client.mint(&attacker, &1000);
+        let env = Env::default();
+        let id = env.register_contract(None, SecureToken);
+        let client = SecureTokenClient::new(&env, &id);
+        let admin = Address::generate(&env);
+        env.mock_all_auths();
+        client.initialize(&admin);
+        // Drop mock_all_auths scope — new env without mocked auth.
+        let env2 = Env::default();
+        let client2 = SecureTokenClient::new(&env2, &id);
+        let attacker = Address::generate(&env2);
+        // No mock_all_auths — require_auth on admin should fail.
+        client2.mint(&attacker, &1000);
     }
 
     #[test]
