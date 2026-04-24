@@ -64,7 +64,8 @@ impl SecurePausable {
         admin.require_auth();
 
         env.storage().persistent().set(&DataKey::Paused, &true);
-        env.events().publish((symbol_short!("paused"),), admin);
+        env.events()
+            .publish((symbol_short!("paused"),), admin);
     }
 
     /// ✅ FIX: Only the admin can unpause the contract.
@@ -77,7 +78,8 @@ impl SecurePausable {
         admin.require_auth();
 
         env.storage().persistent().set(&DataKey::Paused, &false);
-        env.events().publish((symbol_short!("unpaused"),), admin);
+        env.events()
+            .publish((symbol_short!("unpaused"),), admin);
     }
 
     /// ✅ FIX: Transfer is blocked while the contract is paused.
@@ -106,9 +108,7 @@ impl SecurePausable {
 
         env.storage().persistent().set(
             &DataKey::Balance(from),
-            &from_balance
-                .checked_sub(amount)
-                .expect("insufficient balance"),
+            &from_balance.checked_sub(amount).expect("insufficient balance"),
         );
         env.storage()
             .persistent()
@@ -124,7 +124,9 @@ impl SecurePausable {
             .expect("not initialized");
         current_admin.require_auth();
 
-        env.storage().persistent().set(&DataKey::Admin, &new_admin);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Admin, &new_admin);
     }
 
     pub fn get_admin(env: Env) -> Address {

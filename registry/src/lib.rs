@@ -10,9 +10,7 @@
 //!   then checked against the approved-scanner registry.
 
 #![no_std]
-use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Vec,
-};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Map, String, Vec};
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -97,10 +95,8 @@ impl ScanRegistry {
         env.storage()
             .persistent()
             .set(&DataKey::Scanner(scanner.clone()), &false);
-        env.events().publish(
-            (symbol_short!("scanner"), symbol_short!("removed")),
-            scanner,
-        );
+        env.events()
+            .publish((symbol_short!("scanner"), symbol_short!("removed")), scanner);
     }
 
     /// Check whether an address is an approved scanner.

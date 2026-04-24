@@ -34,10 +34,13 @@ impl CallDepthContract {
     pub fn process(env: Env, contract_id: Address, depth: u32) {
         // ❌ No depth check — will hit Soroban call depth limit and panic
         if depth > 0 {
-            CallDepthContractClient::new(&env, &contract_id).process(&contract_id, &(depth - 1));
+            CallDepthContractClient::new(&env, &contract_id)
+                .process(&contract_id, &(depth - 1));
         }
         // State update here may never be reached if depth limit is hit above
-        env.storage().persistent().set(&DataKey::Processed, &true);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Processed, &true);
         let count: u32 = env
             .storage()
             .persistent()
@@ -57,7 +60,9 @@ impl CallDepthContract {
             CallDepthContractClient::new(&env, &contract_id)
                 .process_safe(&contract_id, &(depth - 1));
         }
-        env.storage().persistent().set(&DataKey::Processed, &true);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Processed, &true);
         let count: u32 = env
             .storage()
             .persistent()
@@ -86,7 +91,7 @@ impl CallDepthContract {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::Env;
+    use soroban_sdk::{Env};
 
     #[test]
     fn test_shallow_recursion_completes() {
@@ -110,16 +115,14 @@ mod tests {
         client.process(&contract_id, &64);
     }
 
-    /// The Soroban host blocks contract re-entry, so even "safe" shallow
-    /// recursion into the same contract panics at the host level.
     #[test]
-    #[should_panic]
     fn test_secure_shallow_recursion_completes() {
         let env = Env::default();
         let contract_id = env.register_contract(None, CallDepthContract);
         let client = CallDepthContractClient::new(&env, &contract_id);
 
         client.process_safe(&contract_id, &5);
+        assert!(client.is_processed());
     }
 
     #[test]

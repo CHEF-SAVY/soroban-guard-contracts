@@ -1,5 +1,5 @@
-use super::{DataKey, MAX_RATE};
 use soroban_sdk::{contract, contractimpl, Address, Env};
+use super::{DataKey, MAX_RATE};
 
 #[contract]
 pub struct SecureStakingContract;
@@ -82,7 +82,12 @@ impl SecureStakingContract {
     }
 
     fn require_admin(env: &Env) {
-        let admin: Address = env.storage().persistent().get(&DataKey::Admin).unwrap();
+        let admin: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .unwrap();
         admin.require_auth();
     }
 }
+

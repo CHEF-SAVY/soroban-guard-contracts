@@ -39,11 +39,17 @@ impl SensitiveStorageContract {
     /// Any caller can retrieve the secret — no auth required because the
     /// ledger is already public; this just makes the exposure explicit.
     pub fn get_secret(env: Env) -> Bytes {
-        env.storage().persistent().get(&DataKey::SecretKey).unwrap()
+        env.storage()
+            .persistent()
+            .get(&DataKey::SecretKey)
+            .unwrap()
     }
 
     pub fn get_admin(env: Env) -> Address {
-        env.storage().persistent().get(&DataKey::Admin).unwrap()
+        env.storage()
+            .persistent()
+            .get(&DataKey::Admin)
+            .unwrap()
     }
 
     // -------------------------------------------------------------------------
@@ -124,9 +130,9 @@ mod tests {
         let stored_commitment = client.get_commitment();
         assert_eq!(stored_commitment, hash);
         // Raw secret is never stored — DataKey::SecretKey is absent
-        let has_secret = env.as_contract(&contract_id, || {
-            env.storage().persistent().has(&DataKey::SecretKey)
-        });
-        assert!(!has_secret);
+        assert!(!env
+            .storage()
+            .persistent()
+            .has(&DataKey::SecretKey));
     }
 }
