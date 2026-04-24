@@ -1,18 +1,29 @@
-//! VULNERABLE: Allowance is not decremented after `transfer_from`.
+//! VULNERABLE: Allowance Not Decremented After transfer_from
 //!
-//! This ERC20-like token exposes `approve`, `transfer`, and `transfer_from`.
-//! The vulnerable version allows a spender to reuse the same allowance
-//! indefinitely because `transfer_from` does not decrement it.
+//! A token contract where `transfer_from` checks the spender's allowance but
+//! never reduces it after use. This lets a spender drain the full owner balance
+//! with repeated calls using a single approval.
+//!
+//! VULNERABILITY: `transfer_from()` asserts `allowance >= amount` but never
+//! calls `set_allowance` to decrement it — the allowance is reusable forever.
+//!
+//! SECURE MIRROR: `secure::SecureToken` decrements the allowance by `amount`
+//! after every successful `transfer_from`.
 
 #![no_std]
-
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env};
+
+pub mod secure;
+
+// ── Storage keys ──────────────────────────────────────────────────────────────
 
 #[contracttype]
 pub enum DataKey {
     Balance(Address),
-    Allowance(Address, Address),
+    Allowance(Address, Address), // (owner, spender)
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 fn get_balance(env: &Env, account: &Address) -> i128 {
     env.storage()
@@ -41,27 +52,23 @@ fn set_allowance(env: &Env, owner: &Address, spender: &Address, amount: i128) {
 }
 
 fn do_transfer(env: &Env, from: &Address, to: &Address, amount: i128) {
-    let from_balance = get_balance(env, from);
-    let to_balance = get_balance(env, to);
-
-    let new_from = from_balance
-        .checked_sub(amount)
-        .expect("transfer: insufficient balance");
-    let new_to = to_balance.checked_add(amount).expect("transfer: overflow");
-
-    set_balance(env, from, new_from);
-    set_balance(env, to, new_to);
+    let from_bal = get_balance(env, from);
+    assert!(from_bal >= amount, "insufficient balance");
+    set_balance(env, from, from_bal - amount);
+    let to_bal = get_balance(env, to);
+    set_balance(env, to, to_bal + amount);
 }
 
+// ── Vulnerable token ──────────────────────────────────────────────────────────
+
 #[contract]
-pub struct AllowanceNotDecrementedToken;
+pub struct VulnerableToken;
 
 #[contractimpl]
-impl AllowanceNotDecrementedToken {
+impl VulnerableToken {
     pub fn mint(env: Env, to: Address, amount: i128) {
         let current = get_balance(&env, &to);
-        let next = current.checked_add(amount).expect("mint: overflow");
-        set_balance(&env, &to, next);
+        set_balance(&env, &to, current + amount);
     }
 
     pub fn approve(env: Env, owner: Address, spender: Address, amount: i128) {
@@ -69,42 +76,13 @@ impl AllowanceNotDecrementedToken {
         set_allowance(&env, &owner, &spender, amount);
     }
 
-    pub fn transfer(env: Env, from: Address, to: Address, amount: i128) {
-        from.require_auth();
-        do_transfer(&env, &from, &to, amount);
-    }
-
-    pub fn transfer_from(
-        env: Env,
-        spender: Address,
-        from: Address,
-        to: Address,
-        amount: i128,
-    ) {
+    /// ❌ Checks allowance but never decrements it — spender can reuse it.
+    pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
         spender.require_auth();
-
         let allowance = get_allowance(&env, &from, &spender);
-        assert!(allowance >= amount, "transfer_from: allowance insufficient");
-
-        // ❌ VULNERABILITY: allowance is never decremented.
-        // The spender can reuse the same allowance multiple times.
+        assert!(allowance >= amount, "insufficient allowance");
+        // ❌ Missing: set_allowance(&env, &from, &spender, allowance - amount);
         do_transfer(&env, &from, &to, amount);
-    }
-
-    pub fn transfer_from_secure(
-        env: Env,
-        spender: Address,
-        from: Address,
-        to: Address,
-        amount: i128,
-    ) {
-        spender.require_auth();
-
-        let allowance = get_allowance(&env, &from, &spender);
-        assert!(allowance >= amount, "transfer_from_secure: allowance insufficient");
-
-        do_transfer(&env, &from, &to, amount);
-        set_allowance(&env, &from, &spender, allowance - amount);
     }
 
     pub fn balance(env: Env, account: Address) -> i128 {
@@ -113,5 +91,49 @@ impl AllowanceNotDecrementedToken {
 
     pub fn allowance(env: Env, owner: Address, spender: Address) -> i128 {
         get_allowance(&env, &owner, &spender)
+    }
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use soroban_sdk::{testutils::Address as _, Address, Env};
+
+    fn setup() -> (Env, VulnerableTokenClient<'static>, Address, Address, Address) {
+        let env = Env::default();
+        env.mock_all_auths();
+        let id = env.register_contract(None, VulnerableToken);
+        let client = VulnerableTokenClient::new(&env, &id);
+        let owner = Address::generate(&env);
+        let spender = Address::generate(&env);
+        let recipient = Address::generate(&env);
+        client.mint(&owner, &1000);
+        client.approve(&owner, &spender, &300);
+        (env, client, owner, spender, recipient)
+    }
+
+    /// First transfer_from succeeds normally.
+    #[test]
+    fn test_first_transfer_from_succeeds() {
+        let (_env, client, owner, spender, recipient) = setup();
+        client.transfer_from(&spender, &owner, &recipient, &300);
+        assert_eq!(client.balance(&owner), 700);
+        assert_eq!(client.balance(&recipient), 300);
+    }
+
+    /// Second transfer_from with the same allowance also succeeds.
+    /// Demonstrates the vulnerability — allowance was never decremented.
+    #[test]
+    fn test_second_transfer_from_reuses_allowance() {
+        let (_env, client, owner, spender, recipient) = setup();
+        client.transfer_from(&spender, &owner, &recipient, &300);
+        // Allowance should be 0 now in a correct implementation, but it's still 300.
+        assert_eq!(client.allowance(&owner, &spender), 300);
+        // Second call drains another 300 — this is the bug.
+        client.transfer_from(&spender, &owner, &recipient, &300);
+        assert_eq!(client.balance(&owner), 400);
+        assert_eq!(client.balance(&recipient), 600);
     }
 }
