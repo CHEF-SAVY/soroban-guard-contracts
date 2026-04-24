@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "vulnerable/missing_auth",
+    "vulnerable/zero_admin",
     "vulnerable/missing_events",
     "vulnerable/missing_ttl",
     "vulnerable/timestamp_lock",
@@ -13,7 +14,10 @@ members = [
     "vulnerable/negative_transfer",
     "vulnerable/string_admin",
     "vulnerable/div_by_zero",
-    "vulnerable/dust_griefing",
+    "vulnerable/flash_loan_no_check",
+    "vulnerable/allowance_not_decremented",
+    "vulnerable/leaky_events",
+    "vulnerable/no_slippage",
     "secure/secure_vault",
     "secure/protected_admin",
     "secure/secure_transfer",
