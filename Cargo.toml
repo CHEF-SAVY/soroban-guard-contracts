@@ -9,6 +9,7 @@ members = [
     "vulnerable/timestamp_lock",
     "vulnerable/unchecked_math",
     "vulnerable/unprotected_admin",
+    "vulnerable/unprotected_emergency_withdraw",
     "vulnerable/unsafe_storage",
     "vulnerable/reentrancy",
     "vulnerable/negative_transfer",
