@@ -26,6 +26,7 @@ members = [
     "vulnerable/string_admin",
     "vulnerable/timestamp_lock",
     "vulnerable/unchecked_math",
+    "vulnerable/uncapped_rate",
     "vulnerable/instant_oracle",
     "vulnerable/stale_oracle",
     "vulnerable/unprotected_admin",
