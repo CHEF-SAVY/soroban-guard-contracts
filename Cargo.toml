@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "vulnerable/admin_rugpull",
+    "vulnerable/scanner_impersonation",
     "vulnerable/missing_auth",
     "vulnerable/missing_events",
     "vulnerable/missing_ttl",
