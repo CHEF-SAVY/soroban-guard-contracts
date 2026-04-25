@@ -12,6 +12,7 @@ members = [
     "vulnerable/key_collision",
     "vulnerable/leaky_events",
     "vulnerable/incomplete_blacklist",
+    "vulnerable/redundant_admin_set",
     "vulnerable/missing_auth",
     "vulnerable/unprotected_mint",
     "vulnerable/zero_admin",
