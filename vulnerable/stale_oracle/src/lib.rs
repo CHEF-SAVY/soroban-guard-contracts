@@ -35,7 +35,9 @@ impl VulnerableLending {
         if env.storage().persistent().has(&DataKey::OracleId) {
             panic!("already initialized");
         }
-        env.storage().persistent().set(&DataKey::OracleId, &oracle_id);
+        env.storage()
+            .persistent()
+            .set(&DataKey::OracleId, &oracle_id);
     }
 
     /// Deposit `amount` as collateral for `user`. Requires user auth.
@@ -43,9 +45,7 @@ impl VulnerableLending {
         user.require_auth();
         let key = DataKey::Collateral(user);
         let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
-        env.storage()
-            .persistent()
-            .set(&key, &(current + amount));
+        env.storage().persistent().set(&key, &(current + amount));
     }
 
     /// ❌ No staleness check — price could be arbitrarily old.
@@ -54,7 +54,7 @@ impl VulnerableLending {
             .storage()
             .persistent()
             .get(&DataKey::OracleId)
-            .unwrap();
+            .expect("oracle not initialized");
         let price = MockOracleClient::new(&env, &oracle_id).get_price();
         let collateral: i128 = env
             .storage()
@@ -70,7 +70,10 @@ impl VulnerableLending {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::{testutils::{Address as _, Ledger as _}, Address, Env};
+    use soroban_sdk::{
+        testutils::{Address as _, Ledger as _},
+        Address, Env,
+    };
 
     fn setup_oracle(env: &Env) -> (MockOracleClient, Address, Address) {
         let id = env.register_contract(None, oracle::MockOracle);
@@ -81,7 +84,10 @@ mod tests {
         (client, id, admin)
     }
 
-    fn setup_lending<'a>(env: &'a Env, oracle_id: &Address) -> (Address, VulnerableLendingClient<'a>) {
+    fn setup_lending<'a>(
+        env: &'a Env,
+        oracle_id: &Address,
+    ) -> (Address, VulnerableLendingClient<'a>) {
         let id = env.register_contract(None, VulnerableLending);
         let client = VulnerableLendingClient::new(env, &id);
         env.mock_all_auths();

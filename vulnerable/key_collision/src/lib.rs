@@ -35,9 +35,7 @@ impl KeyCollisionContract {
 
     /// Returns the stored admin address, or `None` if not set.
     pub fn get_admin(env: Env) -> Option<Address> {
-        env.storage()
-            .persistent()
-            .get(&symbol_short!("admin"))
+        env.storage().persistent().get(&symbol_short!("admin"))
     }
 
     /// Store a per-user balance under a caller-supplied `tag` symbol.

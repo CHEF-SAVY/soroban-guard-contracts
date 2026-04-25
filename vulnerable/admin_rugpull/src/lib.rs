@@ -72,11 +72,7 @@ impl VulnerableEscrow {
         env.storage().persistent().set(&key, &new_balance);
 
         let recipient_key = DataKey::Balance(recipient.clone());
-        let recipient_bal: i128 = env
-            .storage()
-            .persistent()
-            .get(&recipient_key)
-            .unwrap_or(0);
+        let recipient_bal: i128 = env.storage().persistent().get(&recipient_key).unwrap_or(0);
         env.storage()
             .persistent()
             .set(&recipient_key, &(recipient_bal + amount));

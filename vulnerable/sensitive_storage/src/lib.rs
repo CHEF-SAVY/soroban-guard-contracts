@@ -44,7 +44,7 @@ impl SensitiveStorageContract {
         env.storage()
             .persistent()
             .get(&DataKey::SecretKey)
-            .unwrap()
+            .expect("secret key not set")
     }
 
     /// Returns the stored admin address.
@@ -52,7 +52,7 @@ impl SensitiveStorageContract {
         env.storage()
             .persistent()
             .get(&DataKey::Admin)
-            .unwrap()
+            .expect("admin not initialized")
     }
 
     // -------------------------------------------------------------------------
@@ -74,7 +74,7 @@ impl SensitiveStorageContract {
         env.storage()
             .persistent()
             .get(&DataKey::Commitment)
-            .unwrap()
+            .expect("commitment not set")
     }
 }
 

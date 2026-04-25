@@ -23,7 +23,7 @@ pub enum DataKey {
 }
 
 pub(crate) fn get_admin(env: &Env) -> Address {
-    env.storage().persistent().get(&DataKey::Admin).unwrap()
+    env.storage().persistent().get(&DataKey::Admin).expect("admin not initialized")
 }
 
 #[contract]
@@ -50,10 +50,7 @@ impl InstantOracle {
 
     /// ❌ No delay check — returns whatever was just written.
     pub fn get_price(env: Env) -> i128 {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Price)
-            .unwrap_or(0)
+        env.storage().persistent().get(&DataKey::Price).unwrap_or(0)
     }
 
     /// Returns the ledger sequence at which the price was last updated.
@@ -72,7 +69,10 @@ impl InstantOracle {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::{testutils::{Address as _, Ledger as _}, Address, Env};
+    use soroban_sdk::{
+        testutils::{Address as _, Ledger as _},
+        Address, Env,
+    };
 
     fn setup(env: &Env) -> (InstantOracleClient, Address) {
         let id = env.register_contract(None, InstantOracle);
@@ -138,7 +138,8 @@ mod tests {
         client.set_price(&500);
 
         // Advance past the delay window.
-        env.ledger().set_sequence_number(env.ledger().sequence() + 6);
+        env.ledger()
+            .set_sequence_number(env.ledger().sequence() + 6);
 
         assert_eq!(client.get_price(), 500);
     }

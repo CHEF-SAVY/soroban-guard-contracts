@@ -58,8 +58,8 @@ impl DustGriefingVault {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use soroban_sdk::{testutils::Address as _, Address, Env};
     use secure::SecureVaultClient;
+    use soroban_sdk::{testutils::Address as _, Address, Env};
 
     fn setup() -> (Env, Address) {
         let env = Env::default();

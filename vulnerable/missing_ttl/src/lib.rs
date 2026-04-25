@@ -87,10 +87,7 @@ impl VulnerableToken {
 mod tests {
     use super::*;
     use soroban_sdk::{
-        testutils::{
-            storage::Persistent as _,
-            Address as _, Ledger as _,
-        },
+        testutils::{storage::Persistent as _, Address as _, Ledger as _},
         Address, Env,
     };
 
