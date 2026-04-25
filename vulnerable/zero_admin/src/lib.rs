@@ -43,10 +43,12 @@ impl ZeroAdminContract {
         env.storage().persistent().set(&DataKey::Value, &value);
     }
 
+    /// Returns the stored config value, defaulting to 0.
     pub fn get_value(env: Env) -> i128 {
         env.storage().persistent().get(&DataKey::Value).unwrap_or(0)
     }
 
+    /// Returns the stored admin address. Panics if not yet initialized.
     pub fn get_admin(env: Env) -> Address {
         env.storage().persistent().get(&DataKey::Admin).expect("admin not initialized")
     }
