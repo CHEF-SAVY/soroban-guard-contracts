@@ -28,7 +28,7 @@ impl MockOracle {
             .storage()
             .persistent()
             .get(&OracleDataKey::Admin)
-            .unwrap();
+            .expect("admin not initialized");
         admin.require_auth();
         env.storage()
             .persistent()

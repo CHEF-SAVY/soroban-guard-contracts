@@ -25,8 +25,9 @@ impl UnprotectedBurnToken {
         let current: i128 = env.storage().persistent().get(&key).unwrap_or(0);
         env.storage()
             .persistent()
-            .set(&key, &(current.checked_add(amount).unwrap()));
-        env.events().publish((symbol_short!("mint"),), (to, amount));
+            .set(&key, &(current.checked_add(amount).expect("mint overflow")));
+        env.events()
+            .publish((symbol_short!("mint"),), (to, amount));
     }
 
     /// VULNERABLE: Burns `amount` tokens from `account` without verifying
@@ -40,7 +41,7 @@ impl UnprotectedBurnToken {
         // No auth check — anyone can call this and burn tokens from any account
         env.storage()
             .persistent()
-            .set(&key, &(balance.checked_sub(amount).unwrap()));
+            .set(&key, &(balance.checked_sub(amount).expect("burn underflow")));
 
         env.events()
             .publish((symbol_short!("burn"),), (account, amount));

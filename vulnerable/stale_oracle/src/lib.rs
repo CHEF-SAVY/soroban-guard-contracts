@@ -48,7 +48,11 @@ impl VulnerableLending {
 
     /// ❌ No staleness check — price could be arbitrarily old.
     pub fn get_collateral_value(env: Env, user: Address) -> i128 {
-        let oracle_id: Address = env.storage().persistent().get(&DataKey::OracleId).unwrap();
+        let oracle_id: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::OracleId)
+            .expect("oracle not initialized");
         let price = MockOracleClient::new(&env, &oracle_id).get_price();
         let collateral: i128 = env
             .storage()

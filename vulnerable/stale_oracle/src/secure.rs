@@ -33,7 +33,11 @@ impl SecureLending {
 
     /// ✅ Rejects the price if it is older than MAX_STALENESS.
     pub fn get_collateral_value(env: Env, user: Address) -> i128 {
-        let oracle_id: Address = env.storage().persistent().get(&DataKey::OracleId).unwrap();
+        let oracle_id: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::OracleId)
+            .expect("oracle not initialized");
         let oracle = MockOracleClient::new(&env, &oracle_id);
         let price = oracle.get_price();
         let last_updated: u64 = oracle.last_updated();
