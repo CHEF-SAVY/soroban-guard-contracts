@@ -152,10 +152,15 @@ impl ScanRegistry {
         findings_hash: String,
         severity_counts: Map<String, u32>,
     ) {
-        // 1. The scanner must have signed this transaction.
+        // 1. findings_hash must not be empty.
+        if findings_hash.is_empty() {
+            panic!("findings_hash cannot be empty");
+        }
+
+        // 2. The scanner must have signed this transaction.
         scanner.require_auth();
 
-        // 2. The scanner must be in the approved list.
+        // 3. The scanner must be in the approved list.
         let approved: bool = env
             .storage()
             .persistent()
