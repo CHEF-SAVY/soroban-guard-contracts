@@ -62,6 +62,8 @@ members = [
     "secure/secure_burn",
     "secure/secure_token",
     "registry",
+    "vulnerable/expired_delegation",
+    "vulnerable/uncapped_supply",
 ]
 
 [workspace.dependencies]

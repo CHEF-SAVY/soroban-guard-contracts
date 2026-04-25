@@ -14,6 +14,17 @@ use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, E
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+/// Human-readable metadata about a scanned contract, set by its registered scanner.
+#[contracttype]
+#[derive(Clone)]
+pub struct ContractMetadata {
+    pub name: String,
+    pub version: String,
+    /// Unix timestamp of the audit date.
+    pub audit_date: u64,
+    pub repo_url: String,
+}
+
 #[contracttype]
 #[derive(Clone)]
 pub struct ScanResult {
@@ -37,6 +48,8 @@ pub enum DataKey {
     ScanHistory(Address),
     /// Reputation score for a scanner address (i32, default 0)
     ScannerScore(Address),
+    /// Human-readable metadata for a contract address
+    Metadata(Address),
 }
 
 // ── Contract ─────────────────────────────────────────────────────────────────
@@ -341,6 +354,44 @@ impl ScanRegistry {
             .expect("not initialized")
     }
 
+    // ── Metadata ─────────────────────────────────────────────────────────────
+
+    /// Set human-readable metadata for a contract.
+    ///
+    /// Only the scanner that has previously submitted a scan for `contract_address`
+    /// may set its metadata.
+    ///
+    /// # Panics
+    /// Panics if `scanner` has never submitted a scan for `contract_address`,
+    /// or if `scanner` has not signed the transaction.
+    pub fn set_metadata(env: Env, scanner: Address, contract_address: Address, metadata: ContractMetadata) {
+        scanner.require_auth();
+
+        // Verify the scanner has an existing scan result for this contract.
+        let latest: Option<ScanResult> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::LatestScan(contract_address.clone()));
+        let scan = latest.expect("no scan found for this contract");
+        if scan.scanner != scanner {
+            panic!("only the contract's scanner may set metadata");
+        }
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Metadata(contract_address), &metadata);
+    }
+
+    /// Retrieve metadata for a contract address.
+    ///
+    /// # Returns
+    /// `Some(ContractMetadata)` if metadata has been set, `None` otherwise.
+    pub fn get_metadata(env: Env, contract_address: Address) -> Option<ContractMetadata> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Metadata(contract_address))
+    }
+
     // ── Internal helpers ─────────────────────────────────────────────────────
 
     fn require_admin(env: &Env) {
@@ -573,6 +624,76 @@ mod tests {
 
         submit_n_scans(&client, &scanner, &target, 4, &env);
         assert_eq!(client.get_history_len(&target), 4);
+    }
+
+    // ── Metadata tests ────────────────────────────────────────────────────────
+
+    fn make_metadata(env: &Env) -> ContractMetadata {
+        ContractMetadata {
+            name: String::from_str(env, "MyToken"),
+            version: String::from_str(env, "1.0.0"),
+            audit_date: 1_700_000_000u64,
+            repo_url: String::from_str(env, "https://github.com/example/mytoken"),
+        }
+    }
+
+    #[test]
+    fn test_scanner_sets_and_gets_metadata() {
+        let (env, contract_id, _admin, scanner) = setup();
+        let client = ScanRegistryClient::new(&env, &contract_id);
+
+        let target = Address::generate(&env);
+        let counts: Map<String, u32> = map![&env, (String::from_str(&env, "low"), 0u32)];
+
+        client.add_scanner(&scanner);
+        client.submit_scan(&scanner, &target, &String::from_str(&env, "hash1"), &counts);
+
+        let meta = make_metadata(&env);
+        client.set_metadata(&scanner, &target, &meta);
+
+        let stored = client.get_metadata(&target).unwrap();
+        assert_eq!(stored.name, String::from_str(&env, "MyToken"));
+        assert_eq!(stored.version, String::from_str(&env, "1.0.0"));
+        assert_eq!(stored.audit_date, 1_700_000_000u64);
+        assert_eq!(stored.repo_url, String::from_str(&env, "https://github.com/example/mytoken"));
+    }
+
+    #[test]
+    fn test_get_metadata_returns_none_when_unset() {
+        let (env, contract_id, _admin, _scanner) = setup();
+        let client = ScanRegistryClient::new(&env, &contract_id);
+        let target = Address::generate(&env);
+        assert!(client.get_metadata(&target).is_none());
+    }
+
+    #[test]
+    #[should_panic(expected = "only the contract's scanner may set metadata")]
+    fn test_non_scanner_cannot_set_metadata() {
+        let (env, contract_id, _admin, scanner) = setup();
+        let client = ScanRegistryClient::new(&env, &contract_id);
+
+        let target = Address::generate(&env);
+        let counts: Map<String, u32> = map![&env, (String::from_str(&env, "low"), 0u32)];
+
+        client.add_scanner(&scanner);
+        client.submit_scan(&scanner, &target, &String::from_str(&env, "hash1"), &counts);
+
+        // A different scanner tries to set metadata for a contract they didn't scan.
+        let other_scanner = Address::generate(&env);
+        client.add_scanner(&other_scanner);
+        client.set_metadata(&other_scanner, &target, &make_metadata(&env));
+    }
+
+    #[test]
+    #[should_panic(expected = "no scan found for this contract")]
+    fn test_metadata_requires_prior_scan() {
+        let (env, contract_id, _admin, scanner) = setup();
+        let client = ScanRegistryClient::new(&env, &contract_id);
+
+        let target = Address::generate(&env);
+        client.add_scanner(&scanner);
+        // No scan submitted — should panic.
+        client.set_metadata(&scanner, &target, &make_metadata(&env));
     }
 
     #[test]
