@@ -160,7 +160,12 @@ mod tests {
 
         let target = Address::generate(&env);
         client.add_scanner(&scanner);
-        client.submit_scan(&scanner, &target, &String::from_str(&env, "hash1"), &counts(&env));
+        client.submit_scan(
+            &scanner,
+            &target,
+            &String::from_str(&env, "hash1"),
+            &counts(&env),
+        );
 
         let result = client.get_scan(&target).unwrap();
         assert_eq!(result.scanner, scanner);
