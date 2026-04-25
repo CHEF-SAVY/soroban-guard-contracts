@@ -33,7 +33,7 @@ impl ZeroAdminContract {
 
     /// Admin-gated function — permanently inaccessible if admin is zero.
     pub fn set_value(env: Env, value: i128) {
-        let admin: Address = env.storage().persistent().get(&DataKey::Admin).unwrap();
+        let admin: Address = env.storage().persistent().get(&DataKey::Admin).expect("admin not initialized");
         admin.require_auth();
         env.storage().persistent().set(&DataKey::Value, &value);
     }
@@ -43,7 +43,7 @@ impl ZeroAdminContract {
     }
 
     pub fn get_admin(env: Env) -> Address {
-        env.storage().persistent().get(&DataKey::Admin).unwrap()
+        env.storage().persistent().get(&DataKey::Admin).expect("admin not initialized")
     }
 }
 
