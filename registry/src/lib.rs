@@ -202,11 +202,7 @@ impl ScanRegistry {
             env.storage().persistent().set(&index_key, &index);
         }
         // Increment scanner reputation score.
-        let score: i32 = env
-            .storage()
-            .persistent()
-            .get(&score_key)
-            .unwrap_or(0i32);
+        let score: i32 = env.storage().persistent().get(&score_key).unwrap_or(0i32);
         env.storage()
             .persistent()
             .set(&score_key, &score.saturating_add(1));
@@ -224,11 +220,7 @@ impl ScanRegistry {
     pub fn dispute_scan(env: Env, scanner: Address) {
         Self::require_admin(&env);
         let score_key = DataKey::ScannerScore(scanner);
-        let score: i32 = env
-            .storage()
-            .persistent()
-            .get(&score_key)
-            .unwrap_or(0i32);
+        let score: i32 = env.storage().persistent().get(&score_key).unwrap_or(0i32);
         env.storage()
             .persistent()
             .set(&score_key, &score.saturating_sub(1));
@@ -753,9 +745,17 @@ mod tests {
 
     // ── Pagination tests ──────────────────────────────────────────────────────
 
-    fn submit_n_scans(client: &ScanRegistryClient, scanner: &Address, target: &Address, n: u32, env: &Env) {
+    fn submit_n_scans(
+        client: &ScanRegistryClient,
+        scanner: &Address,
+        target: &Address,
+        n: u32,
+        env: &Env,
+    ) {
         // Pre-defined hash labels — supports up to 8 scans in tests.
-        let hashes = ["hash0", "hash1", "hash2", "hash3", "hash4", "hash5", "hash6", "hash7"];
+        let hashes = [
+            "hash0", "hash1", "hash2", "hash3", "hash4", "hash5", "hash6", "hash7",
+        ];
         let counts: Map<String, u32> = map![env, (String::from_str(env, "low"), 0u32)];
         for i in 0..n {
             let hash = String::from_str(env, hashes[i as usize]);
@@ -774,8 +774,14 @@ mod tests {
 
         let page = client.get_history_page(&target, &0, &3);
         assert_eq!(page.len(), 3);
-        assert_eq!(page.get(0).unwrap().findings_hash, String::from_str(&env, "hash0"));
-        assert_eq!(page.get(2).unwrap().findings_hash, String::from_str(&env, "hash2"));
+        assert_eq!(
+            page.get(0).unwrap().findings_hash,
+            String::from_str(&env, "hash0")
+        );
+        assert_eq!(
+            page.get(2).unwrap().findings_hash,
+            String::from_str(&env, "hash2")
+        );
     }
 
     #[test]
@@ -790,8 +796,14 @@ mod tests {
         // page 1 with page_size 3 → items [3, 4] (2 items)
         let page = client.get_history_page(&target, &1, &3);
         assert_eq!(page.len(), 2);
-        assert_eq!(page.get(0).unwrap().findings_hash, String::from_str(&env, "hash3"));
-        assert_eq!(page.get(1).unwrap().findings_hash, String::from_str(&env, "hash4"));
+        assert_eq!(
+            page.get(0).unwrap().findings_hash,
+            String::from_str(&env, "hash3")
+        );
+        assert_eq!(
+            page.get(1).unwrap().findings_hash,
+            String::from_str(&env, "hash4")
+        );
     }
 
     #[test]

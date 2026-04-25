@@ -115,11 +115,15 @@ mod tests {
 
         // Decode the event data tuple and verify it contains balance values.
         let event_data: Val = events.last().unwrap().2;
-        let tuple = Vec::<Val>::try_from_val(&env, &event_data)
-            .expect("event data should be a tuple/vec");
+        let tuple =
+            Vec::<Val>::try_from_val(&env, &event_data).expect("event data should be a tuple/vec");
 
         // A 4-element tuple means balances were leaked (from, to, from_bal, to_bal).
-        assert_eq!(tuple.len(), 4, "event must contain 4 fields including leaked balances");
+        assert_eq!(
+            tuple.len(),
+            4,
+            "event must contain 4 fields including leaked balances"
+        );
 
         // Decode the leaked balance fields (indices 2 and 3).
         let leaked_from_bal = i128::try_from_val(&env, &tuple.get(2).unwrap())
@@ -127,7 +131,13 @@ mod tests {
         let leaked_to_bal = i128::try_from_val(&env, &tuple.get(3).unwrap())
             .expect("fourth field should be i128 balance");
 
-        assert_eq!(leaked_from_bal, 600, "event leaks alice's post-transfer balance");
-        assert_eq!(leaked_to_bal, 600, "event leaks bob's post-transfer balance");
+        assert_eq!(
+            leaked_from_bal, 600,
+            "event leaks alice's post-transfer balance"
+        );
+        assert_eq!(
+            leaked_to_bal, 600,
+            "event leaks bob's post-transfer balance"
+        );
     }
 }
