@@ -95,7 +95,7 @@ mod tests {
         client.transfer(&alice, &bob, &-200);
 
         assert_eq!(client.balance(&alice), 700); // gained 200
-        assert_eq!(client.balance(&bob), 300);   // lost 200
+        assert_eq!(client.balance(&bob), 300); // lost 200
     }
 
     #[test]
